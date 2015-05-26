@@ -18,8 +18,8 @@ if sys.argv[-1] == 'publish':
 	sys.exit()
 
 
-with open('requirements.txt') as f:
-	required = f.read().splitlines()
+with open('dependecy_links.txt') as f:
+	links = f.read().splitlines()
 
 with codecs.open('README.md', 'r', 'utf-8') as f:
 	readme = f.read()
@@ -35,7 +35,7 @@ setup(
 	url='https://github.com/tayyabt/scnlp_server',
 	packages=packages,
 	include_package_data=True,
-    install_requires=required,
+    dependency_links=links,
 	license='MIT',
 	zip_safe=False,
 	classifiers=[
