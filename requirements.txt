@@ -1,1 +1,1 @@
-git+http://github.com/tayyabt/tprocess
+-e git+http://github.com/tayyabt/tprocess#egg=tprocess
