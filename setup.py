@@ -34,6 +34,7 @@ setup(
 	url='https://github.com/tayyabt/scnlp_server',
 	packages=packages,
 	include_package_data=True,
+    install_requires=required,
 	license='MIT',
 	zip_safe=False,
 	classifiers=[
