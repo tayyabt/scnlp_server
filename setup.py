@@ -18,7 +18,8 @@ if sys.argv[-1] == 'publish':
 	sys.exit()
 
 
-
+with open('requirements.txt') as f:
+	required = f.read().splitlines()
 
 with codecs.open('README.md', 'r', 'utf-8') as f:
 	readme = f.read()
