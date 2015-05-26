@@ -22,6 +22,12 @@ You can run the test script for the client as follows;
 
 The Stanford Sentiment Pipeline client can be created in a similar way. 
 
+##Dependencies
+You would have to install the following dependecy package. For some reason I can not get pip to install it automatically. If someone can fix this problem, that would be great.
+```
+sudo pip3 install git+http://github.com/tayyabt/tprocess
+```
+
 ##Protocol
 
 All the data that is sent to the server needs to have its length sent in the first 8 bytes. The python client already takes care of this.
