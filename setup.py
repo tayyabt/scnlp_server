@@ -18,7 +18,7 @@ if sys.argv[-1] == 'publish':
 	sys.exit()
 
 
-with open('dependecy_links.txt') as f:
+with open('dependency_links.txt') as f:
 	links = f.read().splitlines()
 
 with codecs.open('README.md', 'r', 'utf-8') as f:
