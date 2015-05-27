@@ -80,18 +80,33 @@ class SCNLPClient:
 	def close(self):
 		self.sock.close()
 
+# def get_text_from_output(out):
+# 	texts = []
+# 	sents = out['root']['document']['sentences']['sentence']
+# 	if type(sents).__name__ == 'dict':
+# 		sents = [sents]
+# 	for s in sents:
+# 		p = s['parse']
+# 		p = re.sub('-[A-Z]+-', '', p)
+# 		p = re.sub('\([^ ]+ *', '', p)
+# 		p = re.sub('[\) ]+', '', p)
+# 		p = get_text_from_sentence(p)
+# 		texts.append(p)
+# 	return ''.join(texts)
+# def get_text_from_sentence(p):
+# 	return re.sub( '[^A-Za-z]', '', p.replace('\r', '').replace('\n', '') )
 
 if __name__ == '__main__':
 	port = int(sys.argv[1])
 	scnlp_client = SCNLPClient(port)
 	scnlp_client.connect_to_server()
-	# LOG.info("Enter 'quit' to quit")
-	# while True:
-	# 	input = sys.stdin.readline()
-	# 	if input.strip() == 'quit':
-	# 		break
-	# 	output = scnlp_client.process_text(input)
-	# 	LOG.info( output )
-	# 	LOG.info("")
-	# scnlp_client.close()
+	LOG.info("Enter 'quit' to quit")
+	while True:
+		input = sys.stdin.readline()
+		if input.strip() == 'quit':
+			break
+		output = scnlp_client.process_text(input)
+		LOG.info( output )
+		LOG.info("")
+	scnlp_client.close()
 	

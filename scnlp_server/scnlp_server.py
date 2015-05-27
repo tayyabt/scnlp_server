@@ -15,6 +15,7 @@ class SCNLPServer:
 		self.jars_folder = JARS_FOLDER
 		self.server_port = server_port
 		self.annotators = annotators
+		#java -cp "*" -Xmx4g edu.stanford.nlp.pipeline.StanfordCoreNLP -annotators tokenize,ssplit,pos,lemma,ner,parse,dcoref -outputFormat xml
 		self.cmd = 'java -cp "*" -Xmx%s edu.stanford.nlp.pipeline.StanfordCoreNLP -annotators %s -outputFormat xml' % (memory, self.annotators)
 
 	def start_server(self):
@@ -52,7 +53,10 @@ class SCNLPServer:
 			assert False, "Could not start the server\n%s" % ex
 
 	def process_text(self, input_text):
-
+		input_text = re.sub( '\\r', '', input_text )
+		input_text = re.sub( '\.(\\n)+', '.', input_text )
+		input_text = re.sub( '^(\\n)+ *', '', input_text )
+		input_text = re.sub( '(\\n)+ ', '. ', input_text )
 		text_processed = ''
 		output = ''
 		# if len(input_text) > 1023:
