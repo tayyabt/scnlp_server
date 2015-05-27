@@ -3,6 +3,7 @@ from tprocess import tprocess
 from threading import Thread
 import sys
 import math
+from .tserver import tserver
 
 JARS_FOLDER = '/Users/Apple/Documents/datascription/stanford-corenlp-full-2015-01-30/'
 
@@ -10,15 +11,18 @@ logging.basicConfig()
 LOG = logging.getLogger("SCNLPServer")
 LOG.setLevel("INFO")
 
-class SCNLPServer:
+class SCNLPServer(tserver):
 	def __init__(self, JARS_FOLDER=JARS_FOLDER, server_port=12340, annotators='tokenize,ssplit,pos,lemma,ner,parse,dcoref', memory='8g'):
+		tserver.__init__(self)
 		self.jars_folder = JARS_FOLDER
 		self.server_port = server_port
 		self.annotators = annotators
+		self.stop_server = False
 		#java -cp "*" -Xmx4g edu.stanford.nlp.pipeline.StanfordCoreNLP -annotators tokenize,ssplit,pos,lemma,ner,parse,dcoref -outputFormat xml
 		self.cmd = 'java -cp "*" -Xmx%s edu.stanford.nlp.pipeline.StanfordCoreNLP -annotators %s -outputFormat xml' % (memory, self.annotators)
 
 	def start_server(self):
+		self.stop_server = False
 		LOG.info("Starting SCNLP as a subprocess")
 		os.chdir( self.jars_folder )
 		self.proc = tprocess(self.cmd)
@@ -28,6 +32,7 @@ class SCNLPServer:
 		LOG.info("Testing communication with SCNLP process")
 		output = self.process_text("This is the test sentence on the server. This is the second test sentence from the server.")
 		output_lines = output.split('\n')
+		self.server_thread = None
 		test_passed = False
 		if len(output_lines) > 1:
 			test_passed = True
@@ -40,17 +45,13 @@ class SCNLPServer:
 			self.server_socket = self.get_server_socket()
 			self.server_socket.listen(1)
 			LOG.info("SCNLP Server now listening on port %d" % self.server_port)
-			try:
-				while True:
-					(clientsocket, address) = self.server_socket.accept()
-					thread = Thread(target = self.handle_client, args = ( clientsocket, ))
-					thread.daemon = True
-					thread.start()
-			except Exception as ex:
-				self.server_socket.close()
-				LOG.info("An exception occured %s" % ex)
+			self.server_thread = Thread(target = self.accept_clientes)
+			self.server_thread.daemon = True
+			self.server_thread.start()
 		except Exception as ex:
 			assert False, "Could not start the server\n%s" % ex
+		print("Returning from the start_server method")
+		return 1
 
 	def process_text(self, input_text):
 		input_text = re.sub( '\\r', '', input_text )
@@ -129,6 +130,8 @@ class SCNLPServer:
 					LOG.info("pausing before retry")
 					time.sleep(5)
 		assert False, "The socket could not be obtained"
+	
+
 	def __del__(self):
 		LOG.info("Winding down the server")
 		self.server_socket.close()
@@ -150,6 +153,6 @@ if __name__ == '__main__':
 		if len(sys.argv) > 2:
 			annotators = sys.argv[2]
 		server = SCNLPServer( server_port=port, JARS_FOLDER=JARS_FOLDER, annotators=annotators )
-		server.start_server()
-
-
+		
+		ret = server.start_server()
+		server.wait_for_command()

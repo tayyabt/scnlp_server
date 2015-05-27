@@ -27,7 +27,7 @@ with codecs.open('README.md', 'r', 'utf-8') as f:
 
 setup(
 	name='scnlp_server',
-	version='0.1a0',
+	version='0.2a0',
 	description='A simple server mode wrapper (and client) for the Stanford Core NLP and Stanford Sentiment Pipeline',
 	long_description=readme,
 	author='Tayyab Tariq',

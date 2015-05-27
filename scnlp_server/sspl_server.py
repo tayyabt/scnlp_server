@@ -2,6 +2,7 @@ import subprocess, time, os, logging, re, socket, atexit, glob, itertools, sys, 
 from tprocess import tprocess
 from threading import Thread
 import sys
+from .tserver import tserver
 
 JARS_FOLDER = '/Users/Apple/Documents/datascription/stanford-corenlp-full-2015-01-30/'
 SENTIMENT_MODEL = 'edu/stanford/nlp/models/sentiment/sentiment.ser.gz'
@@ -11,8 +12,9 @@ logging.basicConfig()
 LOG = logging.getLogger("SSPLServer")
 LOG.setLevel("INFO")
 
-class SSPLServer:
+class SSPLServer(tserver):
 	def __init__(self, JARS_FOLDER=JARS_FOLDER, sentiment_model=SENTIMENT_MODEL, parser_model=PARSER_MODEL, server_port=12340):
+		tserver.__init__(self)
 		self.jars_folder = JARS_FOLDER
 		self.output_formats = ['PROBABILITIES']
 		self.server_port = server_port
@@ -45,14 +47,9 @@ class SSPLServer:
 			self.server_socket = self.get_server_socket()
 			self.server_socket.listen(1)
 			LOG.info("SSPL Server now listening on port %d" % self.server_port)
-			try:
-				while True:
-					(clientsocket, address) = self.server_socket.accept()
-					thread = Thread(target = self.handle_client, args = ( clientsocket, ))
-					thread.start()
-			except Exception as ex:
-				self.server_socket.close()
-				LOG.info("An exception occured %s" % ex)
+			self.server_thread = Thread(target = self.accept_clientes)
+			self.server_thread.daemon = True
+			self.server_thread.start()
 		except Exception as ex:
 			assert False, "Could not start the server\n%s" % ex
 
@@ -137,5 +134,6 @@ if __name__ == '__main__':
 		port = int(sys.argv[1])
 		server = SSPLServer( server_port=port, JARS_FOLDER=JARS_FOLDER )
 		server.start_server()
+		server.wait_for_command()
 
 
