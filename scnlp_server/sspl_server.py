@@ -13,8 +13,9 @@ LOG = logging.getLogger("SSPLServer")
 LOG.setLevel("INFO")
 
 class SSPLServer(tserver):
-	def __init__(self, JARS_FOLDER=JARS_FOLDER, sentiment_model=SENTIMENT_MODEL, parser_model=PARSER_MODEL, server_port=12340):
+	def __init__(self, JARS_FOLDER=JARS_FOLDER, sentiment_model=SENTIMENT_MODEL, parser_model=PARSER_MODEL, server_port=12340, encoding='utf-8'):
 		tserver.__init__(self)
+		self.encoding = encoding
 		self.jars_folder = JARS_FOLDER
 		self.output_formats = ['PROBABILITIES']
 		self.server_port = server_port
@@ -84,6 +85,7 @@ class SSPLServer(tserver):
 			LOG.info("Received '%s' for sentimetn analysis" % input_text)
 			output = self.process_text(input_text)
 			self.send_text(clientsocket, output)
+			LOG.info("Server listening on port %d" % self.server_port)
 
 	def receive_text(self, sock):
 		size_info_str = sock.recv(8)
@@ -91,11 +93,13 @@ class SSPLServer(tserver):
 		LOG.info(size_info_str)
 		LOG.info(size_info)
 		chunks = []
-		curlen = lambda: sum(len(x) for x in chunks)
+		data_chunks = []
+		curlen = lambda: sum(len(x) for x in data_chunks)
 		while True:
 			LOG.info(size_info - curlen())
 			data = sock.recv(size_info - curlen())
-			chunks.append(data.decode('ascii', 'ignore'))
+			data_chunks.append(data)
+			chunks.append(data.decode(self.encoding, 'ignore'))
 			if curlen() >= size_info: break
 			if len(chunks) > 1000:
 				LOG.warning("Incomplete value from socket")
@@ -104,7 +108,13 @@ class SSPLServer(tserver):
 		return ''.join(chunks)
 
 	def send_text(self, sock, text):
-		data = bytes( text + "\n", 'ascii', 'ignore')
+		try:
+			data = bytes( text + "\n", self.encoding, 'ignore')
+		except Exception as e:
+			try:
+				data = (text + "\n").encode(self.encoding, 'ignore')
+			except Exception as ex:
+				data = (text + "\n").decode(self.encoding, 'ignore').encode(self.encoding, 'ignore')
 		sz = len(data)
 		len_info = struct.pack('>Q', sz)
 		sock.sendall(len_info)

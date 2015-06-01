@@ -15,8 +15,9 @@ LOG.setLevel("INFO")
 g_lines = []
 
 class SCNLPClient:
-	def __init__(self, server_port):
+	def __init__(self, server_port, encoding='utf-8'):
 		self.server_port = server_port
+		self.encoding = encoding
 		
 	def connect_to_server(self, num_retries=1, retry_interval=1):
 		for i in range(num_retries):
@@ -61,7 +62,7 @@ class SCNLPClient:
 		curlen = lambda: sum(len(x) for x in chunks)
 		while True:
 			data = self.sock.recv(size_info - curlen())
-			chunks.append(data.decode('ascii', 'ignore'))
+			chunks.append(data.decode(self.encoding, 'ignore'))
 			if curlen() >= size_info: break
 			if len(chunks) > 1000:
 				LOG.warning("Incomplete value from socket")
@@ -70,7 +71,13 @@ class SCNLPClient:
 		return ''.join(chunks)
 
 	def send_text(self, text):
-		data = bytes( text + "\n", 'ascii', 'ignore')
+		try:
+			data = bytes( text + "\n", self.encoding, 'ignore')
+		except Exception as e:
+			try:
+				data = (text + "\n").encode(self.encoding, 'ignore')
+			except Exception as ex:
+				data = (text + "\n").decode(self.encoding, 'ignore').encode(self.encoding, 'ignore')
 		sz = len(data)
 		len_info = struct.pack('>Q', sz)
 		self.sock.sendall(len_info)

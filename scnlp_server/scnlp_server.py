@@ -12,19 +12,23 @@ LOG = logging.getLogger("SCNLPServer")
 LOG.setLevel("INFO")
 
 class SCNLPServer(tserver):
-	def __init__(self, JARS_FOLDER=JARS_FOLDER, server_port=12340, annotators='tokenize,ssplit,pos,lemma,ner,parse,dcoref', memory='8g'):
+	def __init__(self, JARS_FOLDER=JARS_FOLDER, server_port=12340, annotators='tokenize,ssplit,pos,lemma,ner,parse,dcoref', memory='8g', options=None, encoding='utf-8'):
 		tserver.__init__(self)
+		self.encoding = encoding
 		self.jars_folder = JARS_FOLDER
 		self.server_port = server_port
 		self.annotators = annotators
 		self.stop_server = False
 		#java -cp "*" -Xmx4g edu.stanford.nlp.pipeline.StanfordCoreNLP -annotators tokenize,ssplit,pos,lemma,ner,parse,dcoref -outputFormat xml
 		self.cmd = 'java -cp "*" -Xmx%s edu.stanford.nlp.pipeline.StanfordCoreNLP -annotators %s -outputFormat xml' % (memory, self.annotators)
+		if options:
+			self.cmd = '%s %s' % (self.cmd, options)
 
 	def start_server(self):
 		self.stop_server = False
 		LOG.info("Starting SCNLP as a subprocess")
 		os.chdir( self.jars_folder )
+		LOG.info("Starting with command:\n%s" % self.cmd)
 		self.proc = tprocess(self.cmd)
 		#self.proc.logfile = sys.stdout
 		self.proc.expect('NLP>', timeout=None)
@@ -58,6 +62,7 @@ class SCNLPServer(tserver):
 		input_text = re.sub( '\.(\\n)+', '.', input_text )
 		input_text = re.sub( '^(\\n)+ *', '', input_text )
 		input_text = re.sub( '(\\n)+ ', '. ', input_text )
+		input_text = re.sub( '(\\n)+', '', input_text )
 		text_processed = ''
 		output = ''
 		# if len(input_text) > 1023:
@@ -88,6 +93,7 @@ class SCNLPServer(tserver):
 				LOG.info("Received '%s' for analysis" % input_text)
 				output = self.process_text(input_text)
 				self.send_text(clientsocket, output)
+				LOG.info("Server with annotators %s listening on %d" % (self.annotators, self.server_port))
 			except Exception as ex:
 				LOG.info("An exception occured while handling a client.\n%s" % ex)
 				clientsocket.close()
@@ -99,20 +105,28 @@ class SCNLPServer(tserver):
 		LOG.info(size_info_str)
 		LOG.info(size_info)
 		chunks = []
-		curlen = lambda: sum(len(x) for x in chunks)
+		data_chunks = []
+		curlen = lambda: sum(len(x) for x in data_chunks)
 		while True:
 			LOG.info(size_info - curlen())
 			data = sock.recv(size_info - curlen())
-			chunks.append(data.decode('ascii', 'ignore'))
+			data_chunks.append(data)
+			chunks.append(data.decode(self.encoding, 'ignore'))
 			if curlen() >= size_info: break
 			if len(chunks) > 1000:
 				LOG.warning("Incomplete value from socket")
 				return None
-			time.sleep(0.01)
+			#time.sleep(0.01)
 		return ''.join(chunks)
 
 	def send_text(self, sock, text):
-		data = bytes( text + "\n", 'ascii', 'ignore')
+		try:
+			data = bytes( text + "\n", self.encoding, 'ignore')
+		except Exception as e:
+			try:
+				data = (text + "\n").encode(self.encoding, 'ignore')
+			except Exception as ex:
+				data = (text + "\n").decode(self.encoding, 'ignore').encode(self.encoding, 'ignore')
 		sz = len(data)
 		len_info = struct.pack('>Q', sz)
 		sock.sendall(len_info)
